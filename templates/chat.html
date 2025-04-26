@@ -8,9 +8,9 @@
   <script>window.currentUser = "{{ current_user }}";</script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
-  <div class="flex h-screen">
-    <aside class="w-72 bg-gray-950 text-gray-100 flex flex-col p-6 shadow-2xl animate-fadeInLeft rounded-r-3xl border-r border-gray-800">
-      <h3 class="text-2xl font-bold mb-8 tracking-wide text-indigo-400">Users</h3>
+  <div class="flex flex-col md:flex-row h-screen">
+    <aside class="w-full md:w-72 bg-gray-950 text-gray-100 flex flex-col p-4 md:p-6 shadow-2xl animate-fadeInLeft rounded-b-3xl md:rounded-b-none md:rounded-r-3xl border-b md:border-b-0 md:border-r border-gray-800 min-h-[120px] md:min-h-0">
+      <h3 class="text-xl md:text-2xl font-bold mb-4 md:mb-8 tracking-wide text-indigo-400 text-center md:text-left">Users</h3>
       <ul id="user-list" class="flex-1 space-y-0 overflow-y-auto pr-2 divide-y divide-gray-700/40">
         <li class="px-4 py-3 rounded-xl mb-2 bg-gradient-to-r from-indigo-500/80 to-pink-500/80 text-white font-bold shadow-lg flex items-center gap-2">
           <span class="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
@@ -26,12 +26,12 @@
           </li>
         {% endfor %}
       </ul>
-      <form method="post" action="/logout" class="mt-8">
+      <form method="post" action="/logout" class="mt-4 md:mt-8">
         <button type="submit" class="w-full py-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-700 hover:to-indigo-700 text-white font-semibold shadow-lg transition text-lg tracking-wide">Logout</button>
       </form>
     </aside>
-    <main class="flex-1 flex flex-col bg-gray-900/90 rounded-l-3xl shadow-xl animate-fadeIn">
-      <div class="flex-1 p-8 overflow-y-auto flex flex-col gap-1" id="chat-messages">
+    <main class="flex-1 flex flex-col bg-gray-900/90 rounded-t-3xl md:rounded-t-none md:rounded-l-3xl shadow-xl animate-fadeIn min-h-[300px]">
+      <div class="flex-1 p-2 sm:p-4 md:p-8 overflow-y-auto flex flex-col gap-1" id="chat-messages">
         {% set last_sender = None %}
         {% for msg in messages %}
           {% if msg.username == current_user %}
@@ -72,13 +72,17 @@
           {% set last_sender = msg.username %}
         {% endfor %}
       </div>
-      <form class="flex items-center gap-4 p-6 border-t border-gray-800 bg-gray-900/95" id="chat-form">
-        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required class="flex-1 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition shadow-sm" />
-        <button type="submit" class="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition transform hover:-translate-y-1">Send</button>
+      <form class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 p-2 sm:p-4 md:p-6 border-t border-gray-800 bg-gray-900/95" id="chat-form">
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required class="flex-1 px-3 py-2 sm:px-4 sm:py-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition shadow-sm text-sm sm:text-base" />
+        <button type="submit" class="px-4 py-2 sm:px-6 sm:py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition transform hover:-translate-y-1 text-sm sm:text-base">Send</button>
       </form>
     </main>
   </div>
   <style>
+    @media (max-width: 768px) {
+      aside { min-height: 120px; }
+      main { min-height: 300px; }
+    }
     @keyframes fadeInLeft {
       from { opacity: 0; transform: translateX(-40px); }
       to { opacity: 1; transform: none; }

@@ -63,11 +63,7 @@ def clear_session(response: Response):
 
 @app.get("/")
 def root():
-    return {"message": "Hello World"}
-
-@app.get("/items/{item_id}")
-def root(item_id: int):
-    return {"item_id": item_id}
+    return RedirectResponse(url="/chat", status_code=status.HTTP_302_FOUND)
 
 @app.get('/log-in', response_class=HTMLResponse)
 async def login_get(request: Request, session: str = Cookie(None)):
