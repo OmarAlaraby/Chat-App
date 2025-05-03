@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Modern Chat Room</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>window.currentUser = "{{ current_user }}";</script>
+  <script>window.currentUser = "{{ username }}";</script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
   <div class="flex flex-col md:flex-row h-screen">
@@ -111,85 +111,111 @@
   </style>
   <script>
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${wsProtocol}://${window.location.host}/ws/chat`);
+    const ws = new WebSocket(`${wsProtocol}://${window.location.host}/ws/${window.currentUser}`);
     const chatMessages = document.getElementById('chat-messages');
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
 
-    ws.onmessage = function(event) {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'userlist') {
-          // Update the sidebar user list in real time
-          const userList = document.getElementById('user-list');
-          userList.innerHTML = '';
-          // Current user at the top
-          userList.innerHTML += `
+    function connect() {
+        ws.onopen = function() {
+            console.log('Connected to chat server');
+            reconnectAttempts = 0;
+        };
+
+        ws.onclose = function() {
+            console.log('Disconnected from chat server');
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                setTimeout(() => {
+                    console.log('Attempting to reconnect...');
+                    connect();
+                }, 1000 * reconnectAttempts);
+            }
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+
+        ws.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'userlist') {
+                    updateUserList(data);
+                } else if (data.type === 'message') {
+                    addMessage(data);
+                }
+            } catch (e) {
+                console.error('Error processing message:', e);
+            }
+        };
+    }
+
+    function updateUserList(data) {
+        const userList = document.getElementById('user-list');
+        userList.innerHTML = '';
+        // Current user at the top
+        userList.innerHTML += `
             <li class="px-4 py-3 rounded-xl mb-2 bg-gradient-to-r from-indigo-500/80 to-pink-500/80 text-white font-bold shadow-lg flex items-center gap-2">
-              <span class="inline-block w-2 h-2 ${data.status[window.currentUser]==='online' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'} rounded-full"></span>
-              ${window.currentUser} <span class="ml-auto text-xs bg-gray-800/60 px-2 py-0.5 rounded-lg text-indigo-200">You <span class="ml-1 ${data.status[window.currentUser]==='online' ? 'text-green-400' : 'text-gray-400'}" id="me-status">${data.status[window.currentUser]}</span></span>
+                <span class="inline-block w-2 h-2 ${data.status[window.currentUser]==='online' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'} rounded-full"></span>
+                ${window.currentUser} <span class="ml-auto text-xs bg-gray-800/60 px-2 py-0.5 rounded-lg text-indigo-200">You <span class="ml-1 ${data.status[window.currentUser]==='online' ? 'text-green-400' : 'text-gray-400'}" id="me-status">${data.status[window.currentUser]}</span></span>
             </li>
-          `;
-          // Other users
-          data.users.filter(u => u !== window.currentUser).forEach(user => {
+        `;
+        // Other users
+        data.users.filter(u => u !== window.currentUser).forEach(user => {
             userList.innerHTML += `
-              <li class="px-4 py-3 hover:bg-gray-800/70 rounded-xl transition flex items-center justify-between">
-                <div class="flex items-center">
-                  <span class="inline-block w-2 h-2 rounded-full mr-2 ${data.status[user]==='online' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}" id="dot-${user}"></span>
-                  <span>${user}</span>
-                </div>
-                <span class="text-xs font-semibold ${data.status[user]==='online' ? 'text-green-400' : 'text-gray-400'}" id="status-${user}">${data.status[user]}</span>
-              </li>
+                <li class="px-4 py-3 hover:bg-gray-800/70 rounded-xl transition flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="inline-block w-2 h-2 rounded-full mr-2 ${data.status[user]==='online' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}" id="dot-${user}"></span>
+                        <span>${user}</span>
+                    </div>
+                    <span class="text-xs font-semibold ${data.status[user]==='online' ? 'text-green-400' : 'text-gray-400'}" id="status-${user}">${data.status[user]}</span>
+                </li>
             `;
-          });
-          return;
-        }
-        // If message is a chat message in JSON format
-        if (data.type === 'chat') {
-          const msgDiv = document.createElement('div');
-          if (data.username === "{{ current_user }}") {
+        });
+    }
+
+    function addMessage(data) {
+        const msgDiv = document.createElement('div');
+        if (data.username === window.currentUser) {
             msgDiv.className = 'flex justify-end animate-slideInRight';
             msgDiv.innerHTML = `
-              <div class="bg-indigo-600 text-white px-6 py-3 rounded-2xl shadow-xl mb-0.5 max-w-lg text-right relative">
-                <span class="block text-xs text-indigo-100 font-semibold mb-1">You</span>
-                <span class="block text-lg leading-relaxed">${data.content}</span>
-                <div class="text-xs text-indigo-200 mt-1">${data.timestamp}</div>
-              </div>
+                <div class="bg-indigo-600 text-white px-6 py-3 rounded-2xl shadow-xl mb-0.5 max-w-lg text-right relative">
+                    <span class="block text-xs text-indigo-100 font-semibold mb-1">You</span>
+                    <span class="block text-lg leading-relaxed">${data.message}</span>
+                    <div class="text-xs text-indigo-200 mt-1">${new Date().toLocaleTimeString()}</div>
+                </div>
             `;
-          } else {
+        } else {
             msgDiv.className = 'flex justify-start animate-slideInLeft';
             msgDiv.innerHTML = `
-              <div class="bg-gray-800/90 text-gray-100 px-6 py-3 rounded-2xl shadow mb-0.5 max-w-lg text-left relative">
-                <span class="block text-xs text-indigo-300 font-semibold mb-1">${data.username}</span>
-                <span class="block text-lg leading-relaxed">${data.content}</span>
-                <div class="text-xs text-indigo-200 mt-1">${data.timestamp}</div>
-              </div>
+                <div class="bg-gray-800/90 text-gray-100 px-6 py-3 rounded-2xl shadow mb-0.5 max-w-lg text-left relative">
+                    <span class="block text-xs text-indigo-300 font-semibold mb-1">${data.username}</span>
+                    <span class="block text-lg leading-relaxed">${data.message}</span>
+                    <div class="text-xs text-indigo-200 mt-1">${new Date().toLocaleTimeString()}</div>
+                </div>
             `;
-          }
-          chatMessages.appendChild(msgDiv);
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-          return;
         }
-      } catch (e) {}
-      // Fallback for old text messages (for backward compatibility)
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'bg-gray-800/80 text-gray-100 px-4 py-2 rounded-xl shadow mb-2 max-w-lg';
-      msgDiv.textContent = event.data;
-      chatMessages.appendChild(msgDiv);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    };
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
     chatForm.onsubmit = function(e) {
-      e.preventDefault();
-      if (messageInput.value.trim() !== '') {
-        // Send as JSON for new design
-        ws.send(JSON.stringify({
-          type: 'chat',
-          content: messageInput.value
-        }));
-        messageInput.value = '';
-      }
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (message !== '') {
+            ws.send(JSON.stringify({
+                type: 'message',
+                message: message
+            }));
+            messageInput.value = '';
+        }
     };
+
+    // Initialize connection
+    connect();
   </script>
 </body>
 </html>
