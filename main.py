@@ -7,9 +7,6 @@ from app.routes import auth, chat
 
 app = FastAPI()
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
